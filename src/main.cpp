@@ -1,26 +1,17 @@
 /*******************************************************************************
- * This file is part of "Patrick's Programming Library", Version 6 (PPL6).
- * Web: http://www.pfp.de/ppl/
- *
- * $Author: pafe $
- * $Revision: 1.3 $
- * $Date: 2010/06/16 21:49:15 $
- * $Id: genresource.cpp,v 1.3 2010/06/16 21:49:15 pafe Exp $
- *
+ * This file is part of "Patrick's Programming Library", Version 7 (PPL7).
+ * Web: https://github.com/pfedick/PPLGenResource
  *******************************************************************************
- * Copyright (c) 2010, Patrick Fedick <patrick@pfp.de>
+ * Copyright (c) 2024, Patrick Fedick <patrick@pfp.de>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the copyright holder nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
+ *    1. Redistributions of source code must retain the above copyright notice, this
+ *       list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright notice,
+ *       this list of conditions and the following disclaimer in the documentation
+ *       and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -30,24 +21,26 @@
  * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
  * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
-#include "ppl6.h"
+
+
+#include "ppl7.h"
 
 
 void DisplayHeader()
 {
-	ppl6::Cppl6Core *core=ppl6::PPLInit();
-	ppl6::CString copyright=core->GetCopyright();
-	ppl6::CString version=core->GetVersion();
-	ppl6::CString s,l;
-	s.Setf("PPL6 Resource Generator, Version %s",(const char*)version);
-	l.Repeat((char*)"=",s.Len());
+	//ppl6::Cppl6Core *core=ppl6::PPLInit();
+	//ppl6::CString copyright=core->GetCopyright();
+	//ppl6::CString version=core->GetVersion();
+	ppl7::String s,l;
+	s.setf("PPL7 Resource Generator, Version %d.%d.%d",PPL7_VERSION_MAJOR,PPL7_VERSION_MINOR,PPL7_VERSION_BUILD);
+	l.repeat("=",s.len());
 	printf ("\n%s\n%s\n",(const char*)s,(const char*)l);
-	printf ("%s\n\n",(const char*)copyright);
+	printf ("%s\n\n",PPL7_COPYRIGHT);
 }
 
 void help()
@@ -57,6 +50,7 @@ void help()
 	printf ("   -b BASISPFAD   Basispfad für die Resourcen\n"
 			"   -c CONFIGFILE  Datei mit der Resourcen-Konfiguration\n"
 			"   -c help        Zeigt Hilfe zum Format der Konfigurationsdatei an\n"
+			"                  -c HELP zeigt Hilfe zum Format der Konfigurationsdatei an\n"
 			"   -t TARGETFILE  Ziel-Header-Datei. Achtung: Datei wird ueberschrieben!\n"
 			"   -l LABEL       Programmlabel im Targetfile\n"
 			"   -h | --help    Zeigt diese Hilfe an\n\n");
@@ -115,33 +109,33 @@ void helpConfig()
 
 int main(int argc, char **argv)
 {
-	if (!ppl6::PPLInit()) {
-		ppl6::PrintError();
-		return 1;
-	}
 	if (argc<2) {
 		help();
 		return 0;
 	}
-	if (ppl6::getargv(argc,argv,"-h")!=NULL || ppl6::getargv(argc,argv,"--help")!=NULL) {
+	if (ppl7::HaveArgv(argc,argv,"-h") || ppl7::HaveArgv(argc,argv,"--help")) {
 		help();
 		return 0;
 	}
-	char *pfad=ppl6::getargv(argc,argv,"-b");
-	char *configfile=ppl6::getargv(argc,argv,"-c");
-	char *targetfile=ppl6::getargv(argc,argv,"-t");
-	char *label=ppl6::getargv(argc,argv,"-l");
-	ppl6::CString Config=configfile;
-	Config.Trim();
-	Config.LCase();
+	ppl7::String pfad=ppl7::GetArgv(argc,argv,"-b");
+	ppl7::String configfile=ppl7::GetArgv(argc,argv,"-c");
+	ppl7::String targetfile=ppl7::GetArgv(argc,argv,"-t");
+	ppl7::String label=ppl7::GetArgv(argc,argv,"-l");
+
+	ppl7::String Config=configfile;
+	Config.trim();
+	Config.lowerCase();
 	if (Config=="help") {
 		helpConfig();
 		return 0;
 	}
 
-	int r=ppl6::CResource::GenerateResourceHeader(pfad, configfile, targetfile,label);
-	if (r) return 0;
-	ppl6::PrintError();
-	return 1;
+	try {
+		//GenerateResourceHeader(pfad, configfile, targetfile,label);
 
+	} catch (const ppl7::Exception &exp) {
+		exp.print();
+		return 1;
+	}
+	return 0;
 }

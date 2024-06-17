@@ -1,17 +1,16 @@
-EXTRA_CFLAGS =-DHAVE_NASM -DHAVE_SDL -DHAVE_PNG -DHAVE_JPEG
-INCLUDE	= -Iinclude -I/usr/local/include/freetype2 -I/usr/include/freetype2
-CFLAGS	= -fPIC -ggdb -Wall  $(INCLUDE) $(EXTRA_CFLAGS) `ppl6-config --cflags`
-LIB		= -fPIC -L/usr/local/lib   -lpthread `ppl6-config --libs`  -lstdc++
-PROGRAM	= pplfontmaker
+BUILD_NUMBER := $(shell git rev-list --all --count)
+BUILDDATE := $(shell date '+%Y%m%d')
 
-LIBDEP	:= $(shell ppl6-config --ppllib release)
+INCLUDE	= -Iinclude
+CFLAGS	= -ggdb -O2 -Wall  $(INCLUDE) $(EXTRA_CFLAGS) `ppl7-config --cflags`
+LIB		= -L/usr/local/lib  `ppl7-config --libs`  -lstdc++
+PROGRAM	= pplgenresource
 
-OBJECTS=compile/main.o compile/common.o \
-	compile/font5maker.o \
-	compile/font6maker.o
+LIBDEP	:= $(shell ppl7-config --ppllib release)
+
+OBJECTS=compile/main.o compile/genresource.o
 	
 
-	
 $(PROGRAM): compile $(OBJECTS) $(LIBDEP)
 	$(CXX) -o $(PROGRAM) $(OBJECTS) $(CFLAGS) $(LIB)
 	-chmod 755 $(PROGRAM)
@@ -27,16 +26,9 @@ clean:
 install: $(PROGRAM)
 	-cp $(PROGRAM) /usr/local/bin
 
-	
-compile/main.o: src/main.cpp include/fontmaker.h Makefile
+compile/main.o: src/main.cpp include/genresource.h Makefile
 	$(CXX) -o compile/main.o -c src/main.cpp $(CFLAGS)
 
-compile/common.o: src/common.cpp include/fontmaker.h Makefile
-	$(CXX) -o compile/common.o -c src/common.cpp $(CFLAGS)
-	
-compile/font5maker.o: src/font5maker.cpp include/fontmaker.h Makefile
-	$(CXX) -o compile/font5maker.o -c src/font5maker.cpp $(CFLAGS)
-
-compile/font6maker.o: src/font6maker.cpp include/fontmaker.h Makefile
-	$(CXX) -o compile/font6maker.o -c src/font6maker.cpp $(CFLAGS)
+compile/genresource.o: src/genresource.cpp include/genresource.h Makefile
+	$(CXX) -o compile/genresource.o -c src/genresource.cpp $(CFLAGS)
 	
