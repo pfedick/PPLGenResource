@@ -22,9 +22,13 @@ compile:
 
 clean:
 	-rm -f compile/*.o $(PROGRAM) *.core
+
+test: $(PROGRAM)
+	-mkdir -p tmp
+	./pplgenresource -b testdata -c testdata/resourcen.lst -t tmp/resources.h -l testresources
 	
 install: $(PROGRAM)
-	-cp $(PROGRAM) /usr/local/bin
+	-mkdir -p ~/bin && cp $(PROGRAM) ~/bin
 
 compile/main.o: src/main.cpp include/genresource.h Makefile
 	$(CXX) -o compile/main.o -c src/main.cpp $(CFLAGS)
