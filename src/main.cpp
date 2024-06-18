@@ -50,7 +50,6 @@ void help()
 	printf ("   -b BASISPFAD   Basispfad für die Resourcen\n"
 			"   -c CONFIGFILE  Datei mit der Resourcen-Konfiguration\n"
 			"   -c help        Zeigt Hilfe zum Format der Konfigurationsdatei an\n"
-			"                  -c HELP zeigt Hilfe zum Format der Konfigurationsdatei an\n"
 			"   -t TARGETFILE  Ziel-Header-Datei. Achtung: Datei wird ueberschrieben!\n"
 			"   -l LABEL       Programmlabel im Targetfile\n"
 			"   -h | --help    Zeigt diese Hilfe an\n\n");

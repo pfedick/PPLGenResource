@@ -38,16 +38,15 @@
  * Resourcen generieren
  *********************************************************************************/
 
-#ifdef DONE
-static void includeHelp(FileObject &out, const String &configfile)
+static void includeHelp(ppl7::FileObject &out, const ppl7::String &configfile)
 {
-	DateTime now;
+	ppl7::DateTime now;
 	now.setCurrentTime();
 	out.putsf(
 		"/*********************************************************\n"
 		" * PPL7 Resourcen Generator Version %i.%i.%i\n"
 		" * %s\n"
-		"",PPL_VERSION_MAJOR,PPL_VERSION_MINOR,PPL_VERSION_BUILD,PPL_COPYRIGHT
+		"",PPL7_VERSION_MAJOR,PPL7_VERSION_MINOR,PPL7_VERSION_BUILD,PPL7_COPYRIGHT
 	);
 
 	out.putsf(
@@ -81,7 +80,7 @@ static void includeHelp(FileObject &out, const String &configfile)
 		);
 }
 
-static void bufferOut(FileObject &out, const char *buffer, int bytes)
+static void bufferOut(ppl7::FileObject &out, const char *buffer, int bytes)
 {
 	static int c=0;
 	static char clear[25]="";
@@ -108,18 +107,18 @@ static void bufferOut(FileObject &out, const char *buffer, int bytes)
 	}
 }
 
-static void output(FileObject &ff, int resid, const String &name, const String &filename, int size_u, char *buffer, int bytes, int compressiontype)
+static void output(ppl7::FileObject &ff, int resid, const ppl7::String &name, const ppl7::String &filename, int size_u, char *buffer, int bytes, int compressiontype)
 {
 	char *buf=(char*)malloc(64);
-	if (!buf) throw OutOfMemoryException();
+	if (!buf) throw ppl7::OutOfMemoryException();
 
 	uint32_t chunksize=bytes+name.size()+17;
-	Poke32(buf+0,chunksize);
-	Poke16(buf+4,resid);
-	Poke32(buf+6,size_u);
-	Poke32(buf+10,bytes);
-	Poke8(buf+14,compressiontype);
-	Poke8(buf+15,17+name.size());
+	ppl7::Poke32(buf+0,chunksize);
+	ppl7::Poke16(buf+4,resid);
+	ppl7::Poke32(buf+6,size_u);
+	ppl7::Poke32(buf+10,bytes);
+	ppl7::Poke8(buf+14,compressiontype);
+	ppl7::Poke8(buf+15,17+name.size());
 	bufferOut(ff,buf,16);
 	bufferOut(ff,name,name.size()+1);
 	//BufferOut(ff,filename,strlen(filename)+1);
@@ -127,9 +126,9 @@ static void output(FileObject &ff, int resid, const String &name, const String &
 	free(buf);
 }
 
-static int compress(FileObject &ff, char **buffer, size_t *size, int *type)
+static int compress(ppl7::FileObject &ff, char **buffer, size_t *size, int *type)
 {
-	Compression comp;
+	ppl7::Compression comp;
 	size_t size_u=(size_t)ff.size();
 	char *source=(char*)ff.map();			// Komplette Datei mappen
 
@@ -137,12 +136,12 @@ static int compress(FileObject &ff, char **buffer, size_t *size, int *type)
 	size_t size_zlib=size_c;
 	size_t size_bz2=size_c;
 	char *buf=(char*)malloc(size_c);
-	if (!buf) throw OutOfMemoryException();
+	if (!buf) throw ppl7::OutOfMemoryException();
 	// Zuerst Zlib
-	comp.init(Compression::Algo_ZLIB,Compression::Level_High);
+	comp.init(ppl7::Compression::Algo_ZLIB,ppl7::Compression::Level_High);
 	comp.compress(buf,&size_zlib,source,size_u);
 	// Dann Bzip2
-	comp.init(Compression::Algo_BZIP2,Compression::Level_High);
+	comp.init(ppl7::Compression::Algo_BZIP2,ppl7::Compression::Level_High);
 	comp.compress(buf,&size_bz2,source,size_u);
 	// Was war kleiner?
 	if (size_u<=size_bz2 && size_u<=size_zlib) {
@@ -162,7 +161,7 @@ static int compress(FileObject &ff, char **buffer, size_t *size, int *type)
 		return 1;
 	}
 	size_zlib=size_c;
-	comp.init(Compression::Algo_ZLIB,Compression::Level_High);
+	comp.init(ppl7::Compression::Algo_ZLIB,ppl7::Compression::Level_High);
 	comp.compress(buf,&size_zlib,source,size_u);
 	printf ("Using zlib: %u Bytes von %u Bytes (bzip2: %u Bytes)\n",(uint32_t)size_zlib,(uint32_t)size_u,(uint32_t)size_bz2);
 	*buffer=buf;
@@ -171,19 +170,15 @@ static int compress(FileObject &ff, char **buffer, size_t *size, int *type)
 	return 1;
 }
 
-#endif
 
 void generateResourceHeader(const ppl7::String &basispfad, const ppl7::String &configfile, const ppl7::String &targetfile, const ppl7::String &label)
 {
-	throw ppl7::UnsupportedFeatureException("generateResourceHeader");
-#ifdef DONE
 	char section[12];
-	if (configfile.isEmpty()) throw IllegalArgumentException();
-	Config conf;
-	if (!conf.Load(configfile)) {
-		return 0;
-	}
-	if (conf.SelectSection("setup")) {
+	if (configfile.isEmpty()) throw ppl7::IllegalArgumentException();
+	ppl7::ConfigParser conf;
+	conf.load(configfile);
+	if (conf.selectSection("setup")) {
+		conf.selectSection("setup")
 		if (!basispfad) basispfad=conf.Get("path");
 		if (!targetfile) targetfile=conf.Get("targetfile");
 		if (!label) label=conf.Get("label");
@@ -282,6 +277,5 @@ void generateResourceHeader(const ppl7::String &basispfad, const ppl7::String &c
 	BufferOut(&out,NULL,0);
 	out.Puts("0\n};\n");
 	if (suffix) out.Write((void*)suffix,strlen(suffix));
-#endif
 }
 
