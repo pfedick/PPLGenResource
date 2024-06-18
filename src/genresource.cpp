@@ -31,19 +31,20 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "ppl7.h"
+#include <ppl7.h>
+#include "genresource.h"
 
 
 /*********************************************************************************
  * Resourcen generieren
  *********************************************************************************/
 
-static void includeHelp(ppl7::FileObject &out, const ppl7::String &configfile)
+static void IncludeHelp(ppl7::FileObject &out, const ppl7::String &configfile)
 {
 	ppl7::DateTime now;
 	now.setCurrentTime();
 	out.putsf(
-		"/*********************************************************\n"
+		"/*******************************************************************************\n"
 		" * PPL7 Resourcen Generator Version %i.%i.%i\n"
 		" * %s\n"
 		"",PPL7_VERSION_MAJOR,PPL7_VERSION_MINOR,PPL7_VERSION_BUILD,PPL7_COPYRIGHT
@@ -53,7 +54,7 @@ static void includeHelp(ppl7::FileObject &out, const ppl7::String &configfile)
 		" *\n"
 		" * File generation: %s\n"
 		" * Config: %s\n"
-		" *********************************************************/\n\n",
+		" *******************************************************************************/\n\n",
 		(const char*)now.get(), (const char*)configfile
 	);
 	out.puts(
@@ -80,7 +81,7 @@ static void includeHelp(ppl7::FileObject &out, const ppl7::String &configfile)
 		);
 }
 
-static void bufferOut(ppl7::FileObject &out, const char *buffer, int bytes)
+static void BufferOut(ppl7::FileObject &out, const char *buffer, int bytes)
 {
 	static int c=0;
 	static char clear[25]="";
@@ -107,7 +108,7 @@ static void bufferOut(ppl7::FileObject &out, const char *buffer, int bytes)
 	}
 }
 
-static void output(ppl7::FileObject &ff, int resid, const ppl7::String &name, const ppl7::String &filename, int size_u, char *buffer, int bytes, int compressiontype)
+static void Output(ppl7::FileObject &ff, int resid, const ppl7::String &name, const ppl7::String &filename, int size_u, const char *buffer, int bytes, int compressiontype)
 {
 	char *buf=(char*)malloc(64);
 	if (!buf) throw ppl7::OutOfMemoryException();
@@ -119,14 +120,14 @@ static void output(ppl7::FileObject &ff, int resid, const ppl7::String &name, co
 	ppl7::Poke32(buf+10,bytes);
 	ppl7::Poke8(buf+14,compressiontype);
 	ppl7::Poke8(buf+15,17+name.size());
-	bufferOut(ff,buf,16);
-	bufferOut(ff,name,name.size()+1);
+	BufferOut(ff,buf,16);
+	BufferOut(ff,name,name.size()+1);
 	//BufferOut(ff,filename,strlen(filename)+1);
-	bufferOut(ff,buffer,bytes);
+	BufferOut(ff,buffer,bytes);
 	free(buf);
 }
 
-static int compress(ppl7::FileObject &ff, char **buffer, size_t *size, int *type)
+static int Compress(ppl7::FileObject &ff, char **buffer, size_t *size, int *type)
 {
 	ppl7::Compression comp;
 	size_t size_u=(size_t)ff.size();
@@ -171,111 +172,119 @@ static int compress(ppl7::FileObject &ff, char **buffer, size_t *size, int *type
 }
 
 
-void generateResourceHeader(const ppl7::String &basispfad, const ppl7::String &configfile, const ppl7::String &targetfile, const ppl7::String &label)
+void GenerateResourceHeader(const ppl7::String &basispfad, const ppl7::String &configfile, const ppl7::String &targetfile, const ppl7::String &label)
 {
-	char section[12];
 	if (configfile.isEmpty()) throw ppl7::IllegalArgumentException();
 	ppl7::ConfigParser conf;
 	conf.load(configfile);
-	if (conf.selectSection("setup")) {
-		conf.selectSection("setup")
-		if (!basispfad) basispfad=conf.Get("path");
-		if (!targetfile) targetfile=conf.Get("targetfile");
-		if (!label) label=conf.Get("label");
+	ppl7::String BasePath=basispfad;
+	ppl7::String TargetFile=targetfile;
+	ppl7::String Label=label;
+	if (conf.hasSection("setup")) {
+		conf.selectSection("setup");
+		if (BasePath.isEmpty()) BasePath=conf.get("path");
+		if (TargetFile.isEmpty()) TargetFile=conf.get("targetfile");
+		if (Label.isEmpty()) Label=conf.get("label");
 	}
 
-	if ((!basispfad) || strlen(basispfad)==0) {
-		SetError(194,"basispfad ist NULL oder leer");
-		return 0;
+	if (BasePath.isEmpty()) {
+		throw ppl7::MissingArgumentException("basispfad");
 	}
-	if ((!targetfile) || strlen(targetfile)==0) {
-		SetError(194,"targetfile ist NULL oder leer");
-		return 0;
+	
+	if (TargetFile.isEmpty()) {
+		throw ppl7::MissingArgumentException("targetfile");
 	}
 
-	if ((!label) || strlen(label)==0) {
-		SetError(194,"label ist NULL oder leer");
-		return 0;
+	if (Label.isEmpty()) {
+		throw ppl7::MissingArgumentException("label");
 	}
-	const char *prefix=conf.GetSection("prefix");
-	const char *suffix=conf.GetSection("suffix");
-	const char *path=basispfad;
-	CFile out;
-	if (!out.Open(targetfile,"wb")) {
-		return 0;
-	}
+	ppl7::String Prefix, Suffix;
+	if (conf.hasSection("prefix")) Prefix=conf.getSection("prefix");
+	if (conf.hasSection("suffix")) Suffix=conf.getSection("suffix");
+	//const char *path=basispfad;
+
+	ppl7::File out;
+	out.open(TargetFile,ppl7::File::WRITE);
 	printf ("Verarbeite Resourcen in: %s...\n",(const char*)configfile);
-	if (prefix) out.Write((void*)prefix,strlen(prefix));
-	IncludeHelp(&out, configfile);
+	if (Prefix.notEmpty()) out.puts(Prefix);
+	IncludeHelp(out, configfile);
 
-	out.Puts("/**************************************************************\n");
-	out.Puts(" * Resourcen:\n");
-	out.Puts(" *\n");
-	int havesection=conf.FirstSection();
+	out.puts("/**************************************************************\n");
+	out.puts(" * Resourcen:\n");
+	out.puts(" *\n");
+	int havesection=conf.firstSection();
 	while(havesection) {
-		sprintf(section,"%s",conf.GetSectionName());
-		const char *id=conf.Get("ID");
-		const char *name=conf.Get("Name");
-		const char *filename=conf.Get("File");
-		havesection=conf.NextSection();
-		if (!filename) continue;
-		if (strlen(filename)<2) continue;
+		//printf ("havesection: %s\n", (const char*)conf.getSectionName());
+		//sprintf(section,"%s",(const char*)conf.getSectionName());
+		int id=conf.getInt("ID");
+		ppl7::String name=conf.get("Name");
+		ppl7::String filename=conf.get("File");
+		havesection=conf.nextSection();
+		if (filename.isEmpty()) continue;
 		if (!id) continue;
-		if (!name) continue;
-		CFile ff;
-		if (ff.Open("%s/%s","rb",path,filename)) {
-			out.Putsf(" * %4i: %-20s (%s)\n",atoi(id),name,filename);
+		if (name.isEmpty()) continue;
+		ppl7::File ff;
+		ppl7::String filepath;
+		filepath.setf("%s/%s",(const char*)BasePath,(const char*)filename);
+		try {
+			ff.open(filepath,ppl7::File::READ);
+			out.putsf(" * %4i: %-20s (%s)\n",id,(const char*)name,(const char*)filename);
+		} catch (...) {
+			throw;
 		}
 	}
-	out.Puts(" **************************************************************/\n\n");
-	out.Putsf("static unsigned char %s []={\n    ",label);
+
+	out.puts(" **************************************************************/\n\n");
+	out.putsf("static unsigned char %s []={\n    ",(const char*)Label);
+	char section[12];
 	sprintf(section,"PPLRES");
-	poke8(section+7,6);
-	poke8(section+8,0);
-	BufferOut(&out,section,9);
+	ppl7::Poke8(section+7,6);
+	ppl7::Poke8(section+8,0);
+	BufferOut(out,section,9);
 
-	havesection=conf.FirstSection();
+	havesection=conf.firstSection();
 	while(havesection) {
-		sprintf(section,"%s",conf.GetSectionName());
-		const char *id=conf.Get("ID");
-		const char *name=conf.Get("Name");
-		const char *filename=conf.Get("File");
-		const char *compression=conf.Get("compression");
-		havesection=conf.NextSection();
-		if (!filename) continue;
-		if (strlen(filename)<2) continue;
+		//sprintf(section,"%s",conf.GetSectionName());
+		int id=conf.getInt("ID");
+		ppl7::String name=conf.get("Name");
+		ppl7::String filename=conf.get("File");
+		ppl7::String compression=conf.get("compression");
+		havesection=conf.nextSection();
+		if (filename.isEmpty()) continue;
 		if (!id) continue;
-		if (!name) continue;
-		CFile ff;
-		if (!ff.Open("%s/%s","rb",path,filename)) {
-			printf ("Konnte Resource %s nicht oeffnen\n",filename);
-		} else {
-			char *buffer=NULL;
-			uint32_t size=0;
-			int type=0;
-			printf ("%s: ",filename);
-			if (compression) {
-				CString forcecomp=LCase(Trim(compression));
-				if (forcecomp=="none") {
-					buffer=ff.Load();
-					printf ("Forced no compression: %u Bytes\n",(uint32_t)ff.Size());
-					Output(&out,atoi(id),name,filename,(uint32_t)ff.Size(),buffer,(uint32_t)ff.Size(),0);
-					free(buffer);
-					continue;
-				}
-				printf ("Unbekannter Kompressionsalgorithmus für ID %s: >>%s<<\n",id,(const char*)forcecomp);
-				return 0;
+		if (name.isEmpty()) continue;
+		ppl7::String filepath;
+		ppl7::File ff;
+		filepath.setf("%s/%s",(const char*)BasePath,(const char*)filename);
+		ff.open(filepath,ppl7::File::READ);
+
+		char *buffer=NULL;
+		size_t size=0;
+		int type=0;
+		printf ("%s: ",(const char*)filename);
+		if (compression.notEmpty()) {
+			ppl7::String forcecomp=ppl7::LowerCase(ppl7::Trim(compression));
+			if (forcecomp=="none") {
+				const char *buffer=ff.map(0,ff.size());
+				printf ("Forced no compression: %u Bytes\n",(uint32_t)ff.size());
+				Output(out,id,name,filename,ff.size(),buffer,(uint32_t)ff.size(),0);
+				//free(buffer);
+				continue;
 			}
-			if (Compress(&ff,&buffer,&size,&type)) {
-				Output(&out,atoi(id),name,filename,(uint32_t)ff.Size(),buffer,size,type);
-				free(buffer);
-			}
+			printf ("Unbekannter Kompressionsalgorithmus für ID %d: >>%s<<\n",id,(const char*)forcecomp);
+			throw ppl7::InvalidArgumentsException();
+		}
+		// static int Compress(ppl7::FileObject &ff, char **buffer, size_t *size, int *type)
+		if (Compress(ff,&buffer,&size,&type)) {
+			Output(out,id,name,filename,(uint32_t)ff.size(),buffer,size,type);
+			free(buffer);
 		}
 	}
-	poke32(section,0);
-	BufferOut(&out,section,4);
-	BufferOut(&out,NULL,0);
-	out.Puts("0\n};\n");
-	if (suffix) out.Write((void*)suffix,strlen(suffix));
+	ppl7::Poke32(section,0);
+	BufferOut(out,section,4);
+	BufferOut(out,NULL,0);
+	out.puts("0\n};\n");
+	if (Suffix.notEmpty()) out.puts(Suffix);
+	
 }
 

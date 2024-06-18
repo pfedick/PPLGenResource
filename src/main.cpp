@@ -28,7 +28,8 @@
 
 
 
-#include "ppl7.h"
+#include <ppl7.h>
+#include "genresource.h"
 
 
 void DisplayHeader()
@@ -130,8 +131,7 @@ int main(int argc, char **argv)
 	}
 
 	try {
-		//GenerateResourceHeader(pfad, configfile, targetfile,label);
-
+		GenerateResourceHeader(pfad, configfile, targetfile,label);
 	} catch (const ppl7::Exception &exp) {
 		exp.print();
 		return 1;

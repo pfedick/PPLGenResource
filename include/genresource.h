@@ -28,4 +28,4 @@
 
 #include <ppl7.h>
 
-void generateResourceHeader(const ppl7::String &basispfad, const ppl7::String &configfile, const ppl7::String &targetfile, const ppl7::String &label);
+void GenerateResourceHeader(const ppl7::String &basispfad, const ppl7::String &configfile, const ppl7::String &targetfile, const ppl7::String &label);
